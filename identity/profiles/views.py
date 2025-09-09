@@ -7,6 +7,8 @@ from .models import Profile, Friendship
 from django.db import models
 # Accept or reject a friend request
 from rest_framework.views import APIView
+from .serializers import UserListSerializer
+
 
 import logging
 logger = logging.getLogger()
@@ -82,3 +84,8 @@ class RegisterAndLoginView(generics.GenericAPIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token)
         })
+    
+class UserListView(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserListSerializer
+    permission_classes = [permissions.IsAuthenticated]

@@ -67,3 +67,9 @@ class FriendshipDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Friendship
         fields = ('id', 'requester', 'addressee', 'status', 'created_at')
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("id", "username", "email")

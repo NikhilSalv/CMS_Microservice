@@ -14,6 +14,7 @@ from pathlib import Path
 
 import os
 import dj_database_url
+from datetime import timedelta
 
 
 
@@ -77,6 +78,13 @@ TEMPLATES = [
     },
 ]
 
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),   # Access token valid for 30 min
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),      # Refresh token valid for 7 days
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -93,7 +101,6 @@ LOGGING = {
 
 WSGI_APPLICATION = 'identity.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -103,6 +110,12 @@ DATABASES = {
     )
 }
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -144,3 +157,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+        }
+    },
+}
