@@ -174,6 +174,8 @@ class VerifyOTPView(generics.GenericAPIView):
             "access": str(refresh.access_token)
         }, status=status.HTTP_201_CREATED)
 
+
+
 # Optional: helper to return JWT after registration
 class RegisterAndLoginView(generics.GenericAPIView):
     serializer_class = RegisterSerializer

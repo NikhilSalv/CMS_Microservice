@@ -1,4 +1,8 @@
+### “In our CMS microservice project, we containerized PostgreSQL with Docker and connected it to a Django identity service. The frontend React microservice communicated with the Django backend over REST APIs secured with JWT. This separation allowed us to test, scale, and deploy services independently.”
+
 ## 🔑 Authentication
+
+
 
 JWT Authentication is handled via **SimpleJWT**.
 
@@ -66,9 +70,10 @@ sequenceDiagram
     API-->>FE: 200 OK (Friendship accepted)
     FE-->>U2: Show "You are now friends"
 
-
+```
 
 ## 📊 Architecture Diagram
+
 
           ┌──────────────┐
           │   Frontend   │
@@ -89,3 +94,178 @@ sequenceDiagram
     ▼           ▼             ▼
  PostgreSQL   PostgreSQL   Redis/MinIO/Redpanda
  (identity)   (relations)   (future events/storage)
+
+
+
+
+
+# 📚 Microservices Communication in Our CMS Project
+
+## 🔹 How Microservices Talk to Each Other
+
+Microservices typically communicate through APIs or messaging systems:
+
+### ✅ Synchronous Communication (Request-Response)
+- Uses **REST APIs** or **gRPC**, where one service directly calls another.  
+- Example: A frontend microservice calling the backend **Identity Service** for authentication.
+
+### ✅ Asynchronous Communication (Event-Driven)
+- Uses **message brokers** such as RabbitMQ, Kafka, or AWS SQS.  
+- One service **publishes an event**, and others **subscribe and react** without direct coupling.
+
+### ✅ Service Discovery & Load Balancing
+- Tools like **Kubernetes**, **Consul**, or **Eureka** are often used so services can find each other dynamically.  
+
+
+
+## 🔹 Example From This Project
+
+We built a **microservice-based Content Management System (CMS)** for an educational institution:
+
+### 🛂 Identity Service (Django + DRF)
+- Handles **user registration**, **OTP verification**, and **JWT-based login**.  
+
+### 🎨 Frontend Microservice (React)
+- Consumes the **Identity Service APIs** to:
+  - Register/Login users  
+  - Display profile data  
+
+### 🗄️ Database Microservice (PostgreSQL)
+- Instead of hardcoding DB connections, we:
+  - **Containerized PostgreSQL** as a Docker image  
+  - Integrated it with Django via `settings.py`  
+  - Used **environment variables** for host, port, username, and password  
+
+
+## 🚀 Tech Stack
+- **Backend:** Django REST Framework  
+- **Frontend:** React  
+- **Database:** PostgreSQL (Dockerized)  
+- **Auth:** JWT + OTP  
+- **Deployment:** Docker Compose  
+
+
+# 🔐 Securing API Endpoints
+
+This document outlines several ways to secure API endpoints in a microservice-based CMS project.
+
+---
+
+## 1️⃣ CORS (Cross-Origin Resource Sharing)
+
+Restrict allowed origins in your **Django settings** so that only your React app domain can make requests.
+
+**In `settings.py`:**
+
+```python
+CORS_ALLOWED_ORIGINS = [
+    "https://your-react-frontend.com",  # Production React app domain
+    "http://localhost:3000",            # Local React dev server
+]
+
+```
+# 🔑 Securing API Endpoints in Django + React Microservices
+
+This guide covers multiple strategies to secure API endpoints when building microservices with **Django (Identity Service)** and **React (Frontend)**.
+
+---
+
+## 1️⃣ CORS (Cross-Origin Resource Sharing)
+
+Restrict allowed origins in your Django settings so that **only your React app domain** can make requests.
+
+**Django settings.py**
+```python
+CORS_ALLOWED_ORIGINS = [
+    "https://your-react-frontend.com",  # Production React app domain
+    "http://localhost:3000",            # Local React dev server
+]
+```
+
+# 🔐 Securing API Endpoints Between Microservices
+
+This document outlines different ways to **secure API endpoints** when building microservices with **Django (Identity Service)** and **React (Frontend)**.
+
+---
+
+## 2️⃣ API Keys Between Services
+
+Assign an **API key** that only the frontend microservice knows.
+
+**Example in Django**
+```python
+from django.http import JsonResponse
+from django.conf import settings
+
+def api_key_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        api_key = request.headers.get("X-API-KEY")
+        if api_key != settings.FRONTEND_API_KEY:
+            return JsonResponse({"error": "Unauthorized"}, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
+```
+
+
+# 🔐 Securing API Endpoints
+
+---
+
+## 🔑 Store API Keys Securely
+Store `FRONTEND_API_KEY` securely in the **React build environment**, not in code.
+
+---
+
+## 3️⃣ JWT with Audience Claim
+
+Issue JWT tokens with a specific `aud` (audience) claim that identifies your React app.
+
+### Example JWT Claim
+```json
+{
+  "sub": "user123",
+  "aud": "react-frontend"
+}
+```
+
+# 🔐 Securing API Endpoints (Advanced)
+
+---
+
+## 4️⃣ mTLS (Mutual TLS, Service-to-Service)
+
+Use **Mutual TLS** for stronger service-to-service authentication.
+
+- Require the **frontend microservice (proxy)** to authenticate with a **client certificate** before calling the Identity Service.  
+- Works best if React calls via a **backend proxy** (e.g., Node.js, Nginx) instead of directly.  
+
+---
+
+## 5️⃣ API Gateway Approach
+
+Use an **API Gateway** (e.g., Kong, Nginx, AWS API Gateway):
+
+## 5️⃣ API Gateway Approach
+
+Use an **API Gateway** (e.g., Kong, Nginx, AWS API Gateway):
+
+
+- Only the **gateway’s internal IP** can reach Django.  
+
+### Benefits
+- Centralized authentication  
+- Rate limiting  
+- Logging & monitoring  
+- Enterprise-level scalability  
+
+---
+
+## ✅ Summary
+
+| Method         | Security Level    | Use Case                                         |
+|----------------|-------------------|--------------------------------------------------|
+| **CORS**       | Basic             | Stop browser-based attacks                       |
+| **API Keys**   | Medium            | Service-to-service authentication                |
+| **JWT Audience**| Medium-High      | Ensure tokens are issued for the right app       |
+| **mTLS**       | High              | Strong service-to-service security               |
+| **API Gateway**| High + Flexible   | Enterprise-level traffic management              |

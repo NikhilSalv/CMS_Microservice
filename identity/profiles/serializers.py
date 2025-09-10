@@ -35,6 +35,33 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+# this serialiser is removed because, in this logic, the user model was getting created before the OTP verification.
+# this created an issue of populating the data with inactive users. 
+
+# class RegisterSerializer(serializers.ModelSerializer):
+#     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+#     password2 = serializers.CharField(write_only=True, required=True)
+
+#     class Meta:
+#         model = User
+#         fields = ('username', 'email', 'password', 'password2')
+
+#     def validate(self, attrs):
+#         if attrs['password'] != attrs['password2']:
+#             raise serializers.ValidationError({"password": "Password fields didn't match."})
+#         return attrs
+
+#     def create(self, validated_data):
+#         user = User.objects.create(
+#             username=validated_data['username'],
+#             email=validated_data['email']
+#         )
+#         user.set_password(validated_data['password'])
+#         user.is_active = False  # deactivate until OTP verified
+#         user.save()
+#         Profile.objects.create(user=user, display_name=user.username)
+#         return user
+
 
 class SendOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
