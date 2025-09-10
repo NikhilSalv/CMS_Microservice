@@ -44,6 +44,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 class FriendshipSerializer(serializers.ModelSerializer):
+    # action = serializers.ChoiceField(choices=['accept', 'reject'])
     requester = serializers.ReadOnlyField(source='requester.username')
     addressee = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
 
@@ -57,12 +58,16 @@ class FriendshipSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['requester'] = user
         validated_data['status'] = 'requested'
+
+        addressee = validated_data['addressee']
+        logger.info(f"Creating friendship: requester={user.username}, addressee={addressee.username}")
+
         return super().create(validated_data)
 
 # Serializer to view friendships
 class FriendshipDetailSerializer(serializers.ModelSerializer):
     requester = serializers.CharField(source='requester.username', read_only=True)
-    addressee = serializers.CharField(source='addressee.username', read_only=True)
+    addressee = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
 
     class Meta:
         model = Friendship
@@ -73,3 +78,6 @@ class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email")
+
+class RespondFriendRequestSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=['accept', 'reject'])
