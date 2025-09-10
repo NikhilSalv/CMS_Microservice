@@ -2,13 +2,17 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
-from .serializers import RegisterSerializer, ProfileSerializer, FriendshipSerializer, FriendshipDetailSerializer, RespondFriendRequestSerializer
-from .models import Profile, Friendship
+from .serializers import RegisterSerializer, ProfileSerializer, FriendshipSerializer, FriendshipDetailSerializer,RespondFriendRequestSerializer, SendOTPSerializer, VerifyOTPSerializer
+from .models import Profile, Friendship, OTPVerification
 from django.db import models
 # Accept or reject a friend request
 from rest_framework.views import APIView
 from .serializers import UserListSerializer
 from rest_framework import status
+from django.shortcuts import get_object_or_404 
+from django.core.mail import send_mail
+from django.utils import timezone
+from datetime import timedelta, datetime
 
 
 import logging
@@ -27,31 +31,33 @@ class FriendshipListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         return Friendship.objects.filter(
-            models.Q(requester=user) | models.Q(addressee=user)
+        (models.Q(requester=user) | models.Q(addressee=user)),
+        status="accepted"
+    )
+
+class FriendshipDeleteView(generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Restrict queryset so that a user can only delete friendships
+        where they are either the requester or the addressee.
+        """
+        user = self.request.user
+        return Friendship.objects.filter(
+        (models.Q(requester=user) | models.Q(addressee=user)),
+        status="accepted"
+    )
+
+    def delete(self, request, *args, **kwargs):
+        friendship = get_object_or_404(self.get_queryset(), pk=kwargs["pk"])
+        logger.info(f"The user to be deleted={friendship.__dict__}")
+        friendship.delete()
+        return Response(
+            {"detail": "Friendship removed successfully."},
+            status=status.HTTP_204_NO_CONTENT,
         )
 
-
-
-# class RespondFriendRequestView(APIView):
-#     permission_classes = [permissions.IsAuthenticated]
-
-#     def post(self, request, pk, *args, **kwargs):
-#         action = request.data.get('action')
-#         try:
-#             friendship = Friendship.objects.get(pk=pk, addressee=request.user, status='requested')
-#         except Friendship.DoesNotExist:
-#             return Response({"detail": "Friend request not found."}, status=status.HTTP_404_NOT_FOUND)
-
-#         if action == 'accept':
-#             friendship.status = 'accepted'
-#             friendship.save()
-#             return Response({"detail": "Friend request accepted."})
-#         elif action == 'reject':
-#             friendship.delete()
-#             return Response({"detail": "Friend request rejected."})
-#         else:
-#             return Response({"detail": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
-        
 
 class RespondFriendRequestView(generics.GenericAPIView):
     serializer_class = RespondFriendRequestSerializer
@@ -100,6 +106,73 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.profile
+
+class SendOTPView(generics.GenericAPIView):
+    serializer_class = SendOTPSerializer
+    permission_classes = []  # allow anyone to request OTP
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        otp = serializer.create_otp()
+        expires_at = timezone.now() + timedelta(minutes=5)
+
+        OTPVerification.objects.create(
+            email=serializer.validated_data['email'],
+            otp=otp,
+            expires_at=expires_at
+        )
+
+        # send OTP via email
+        send_mail(
+            'Your OTP Code',
+            f'Your OTP is: {otp}',
+            'no-reply@yourdomain.com',
+            [serializer.validated_data['email']],
+        )
+
+        return Response({"detail": "OTP sent to email"}, status=status.HTTP_200_OK)
+
+class VerifyOTPView(generics.GenericAPIView):
+    serializer_class = VerifyOTPSerializer
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        otp_input = serializer.validated_data['otp']
+
+        try:
+            otp_obj = OTPVerification.objects.get(email=email, otp=otp_input, is_verified=False)
+        except OTPVerification.DoesNotExist:
+            return Response({"detail": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if otp_obj.is_expired():
+            return Response({"detail": "OTP expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the user
+        user = User.objects.create_user(
+            username=serializer.validated_data['username'],
+            email=email,
+            password=serializer.validated_data['password']
+        )
+        Profile.objects.create(user=user, display_name=user.username)
+
+        # Mark OTP as verified
+        otp_obj.is_verified = True
+        otp_obj.save()
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "user": {
+                "username": user.username,
+                "email": user.email
+            },
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        }, status=status.HTTP_201_CREATED)
 
 # Optional: helper to return JWT after registration
 class RegisterAndLoginView(generics.GenericAPIView):

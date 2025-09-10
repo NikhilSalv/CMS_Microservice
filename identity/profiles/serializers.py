@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile, Friendship
 from django.contrib.auth.password_validation import validate_password
+import random
 
 import logging
 logger = logging.getLogger(__name__)
@@ -32,6 +33,29 @@ class RegisterSerializer(serializers.ModelSerializer):
         # create empty profile automatically
         Profile.objects.create(user=user, display_name=user.username)
         return user
+
+
+
+class SendOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate_email(self, value):
+    
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already registered")
+        return value
+
+    def create_otp(self):
+        otp = f"{random.randint(100000, 999999)}"
+        return otp
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
 
 # Profile serializer
 class ProfileSerializer(serializers.ModelSerializer):

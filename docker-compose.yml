@@ -86,6 +86,8 @@ services:
 
   frontend:
     build: ./frontend
+    volumes:
+      - ./frontend:/app
     depends_on: ["identity", "posts", "feeds"]
     ports: ["5173:5173"]
 

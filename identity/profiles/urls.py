@@ -3,7 +3,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import UserListView
 from .views import (
     RegisterAndLoginView, ProfileView,
-    SendFriendRequestView, FriendshipListView, RespondFriendRequestView, ReceivedFriendRequestsView
+    SendFriendRequestView, FriendshipListView, RespondFriendRequestView, ReceivedFriendRequestsView, FriendshipDeleteView,
+    SendOTPView, VerifyOTPView
 )
 
 urlpatterns = [
@@ -17,4 +18,10 @@ urlpatterns = [
     path('friendships/respond/<int:pk>/', RespondFriendRequestView.as_view(), name='friendship-respond'),
     path('users/', UserListView.as_view(), name='user-list'),
     path('friendships/received/', ReceivedFriendRequestsView.as_view(), name='received-friend-requests'),
+    path('friendships/<int:pk>/', FriendshipDeleteView.as_view(), name='friendship-delete'),
+
+    path('friendships/<int:pk>/', FriendshipDeleteView.as_view(), name='friendship-delete'),
+    
+    path('auth/send-otp/', SendOTPView.as_view(), name='send-otp'),
+    path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
 ]
