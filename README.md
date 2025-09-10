@@ -269,3 +269,85 @@ Use an **API Gateway** (e.g., Kong, Nginx, AWS API Gateway):
 | **JWT Audience**| Medium-High      | Ensure tokens are issued for the right app       |
 | **mTLS**       | High              | Strong service-to-service security               |
 | **API Gateway**| High + Flexible   | Enterprise-level traffic management              |
+
+
+
+## Dev vs Prod
+
+# Environment Configuration & Deployment Strategy 🚀
+
+When moving your microservice CMS from local development → production, it’s important to:
+
+- Have different configurations for dev/prod **without touching the code**.
+- Enable automatic switching between environments.
+- Securely handle secrets (DB password, JWT secret, etc.).
+
+---
+
+## ✅ Steps to Create Dev/Prod Environments
+
+### 1. Use Environment Variables
+
+Instead of hardcoding database settings, use `.env` files for different environments.
+
+#### **.env.dev** (for local development)
+```dotenv
+DEBUG=True
+POSTGRES_DB=dev_db
+POSTGRES_USER=dev_user
+POSTGRES_PASSWORD=dev_password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+
+
+### .env.prod (for production)
+```dotenv
+DEBUG=False
+POSTGRES_DB=prod_db
+POSTGRES_USER=prod_user
+POSTGRES_PASSWORD=super_secret_password
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+
+
+[
+## 2. Load Env Variables in Django (`settings.py`)
+
+```python
+import os
+from dotenv import load_dotenv
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+if ENVIRONMENT == "prod":
+    load_dotenv(".env.prod")
+else:
+    load_dotenv(".env.dev")
+
+DEBUG = os.getenv("DEBUG", "False") == "True"
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv("POSTGRES_DB"),
+        'USER': os.getenv("POSTGRES_USER"),
+        'PASSWORD': os.getenv("POSTGRES_PASSWORD"),
+        'HOST': os.getenv("POSTGRES_HOST"),
+        'PORT': os.getenv("POSTGRES_PORT"),
+    }
+}
+```
+
+## 4. Deployment Strategy
+
+- **Local Dev** → run via Docker Compose with `.env.dev`.  
+- **Production** → deploy with `.env.prod` (on a server or cloud, e.g., AWS ECS, Kubernetes, or bare-metal VM).  
+- **CI/CD** → GitHub Actions (or similar) can build Docker image, push to registry, and deploy automatically.  
+
+---
+
+### 🔑 Summary for Interview Answer
+
+- Separated dev/prod configs using `.env` files and environment variables.  
+- Django’s `settings.py` dynamically loads the right config.  
+- Used Docker Compose overrides to spin up dev vs. prod environments.  
+- Ensures production DB credentials are isolated, secure, and automatically used when deployed.
