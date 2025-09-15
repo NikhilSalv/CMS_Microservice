@@ -43,6 +43,10 @@ class FriendshipDeleteView(generics.DestroyAPIView):
         Restrict queryset so that a user can only delete friendships
         where they are either the requester or the addressee.
         """
+        if getattr(self, 'swagger_fake_view', False):
+            return Friendship.objects.none()  # empty queryset for docs
+        
+        
         user = self.request.user
         return Friendship.objects.filter(
         (models.Q(requester=user) | models.Q(addressee=user)),
@@ -62,6 +66,14 @@ class FriendshipDeleteView(generics.DestroyAPIView):
 class RespondFriendRequestView(generics.GenericAPIView):
     serializer_class = RespondFriendRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    queryset = Friendship.objects.none()
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Friendship.objects.none()
+        return Friendship.objects.all()
+
 
     def post(self, request, pk):
         user = request.user
