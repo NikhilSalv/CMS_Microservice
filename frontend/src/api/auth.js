@@ -1,13 +1,15 @@
 import axios from "axios";
 
-const BASE_URL = "http://identity:8000/api"; // Docker Compose service name
+const API_BASE = "http://localhost:8000/api"; // identity service URL
 
-export const registerUser = async (username, email, password, password2) => {
-  const res = await axios.post(`${BASE_URL}/auth/register/`, { username, email, password, password2 });
-  return res.data;
+export const registerUser = async (data) => {
+  const response = await axios.post(`${API_BASE}/register/`, data);
+  return response.data;
 };
 
-export const loginUser = async (username, password) => {
-  const res = await axios.post(`${BASE_URL}/auth/login/`, { username, password });
-  return res.data;
+export const loginUser = async (data) => {
+  const response = await axios.post(`${API_BASE}/auth/login/`, data,{
+      headers: { "Content-Type": "application/json" },
+    });
+  return response.data;
 };

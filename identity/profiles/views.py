@@ -190,6 +190,7 @@ class VerifyOTPView(generics.GenericAPIView):
 
 # Optional: helper to return JWT after registration
 class RegisterAndLoginView(generics.GenericAPIView):
+    logger.info("Validation error, view hit")
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 

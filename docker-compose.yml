@@ -89,7 +89,7 @@ services:
     volumes:
       - ./frontend:/app
     depends_on: ["identity", "posts", "feeds"]
-    ports: ["5173:5173"]
+    ports: ["5173:3000"]
 
 volumes:
   identity_db_data:
